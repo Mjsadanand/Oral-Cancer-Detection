@@ -38,13 +38,6 @@ env/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Dataset
-dataset/
-data/
-*.csv
-*.zip
-*.tar.gz
-
 # Models (optionally ignore trained models)
 # models/*.h5
 # models/*.keras
