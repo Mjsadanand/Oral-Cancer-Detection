@@ -1,45 +1,50 @@
 """
-Oral Cancer Detection - Model Training Script
+Oral Cancer Detection - Model Training Script (Histopathology Optimized)
 This script trains a CNN model for binary classification (Normal vs. Cancerous)
+Specifically optimized for histopathology images
 """
 
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.applications import EfficientNetB0, ResNet50, MobileNetV2
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
+from tensorflow.keras.applications import EfficientNetB0, ResNet50, MobileNetV2, DenseNet121
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau, TensorBoard
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 import os
+import datetime
 
-# Configuration
-IMG_SIZE = (224, 224)
-BATCH_SIZE = 32
-EPOCHS = 50
-LEARNING_RATE = 0.001
+# Configuration for Histopathology Images
+IMG_SIZE = (224, 224)  # Can be increased to (299, 299) or (512, 512) for better results
+BATCH_SIZE = 16  # Reduced for larger images and complex models
+EPOCHS = 100  # Increased for better convergence
+LEARNING_RATE = 0.0001  # Lower learning rate for fine-tuning
 
 # Dataset paths - Update these with your dataset location
 DATASET_PATH = "dataset"  # Should contain 'train' and 'validation' folders
                           # Each folder should have 'normal' and 'cancerous' subfolders
 
 def create_data_generators():
-    """Create data generators with augmentation"""
+    """Create data generators with histopathology-specific augmentation"""
     
-    # Training data augmentation
+    # Training data augmentation - optimized for histopathology
+    # Histopathology images benefit from extensive augmentation
     train_datagen = ImageDataGenerator(
         rescale=1./255,
-        rotation_range=20,
+        rotation_range=180,  # Full rotation for histopathology
         width_shift_range=0.2,
         height_shift_range=0.2,
         horizontal_flip=True,
-        vertical_flip=True,
-        zoom_range=0.2,
-        shear_range=0.2,
-        fill_mode='nearest'
+        vertical_flip=True,  # Important for histopathology
+        zoom_range=0.15,
+        shear_range=0.1,
+        brightness_range=[0.85, 1.15],  # Staining variation
+        channel_shift_range=0.1,  # Color variation in staining
+        fill_mode='reflect'  # Better for medical images
     )
     
-    # Validation data (only rescaling)
+    # Validation data (only rescaling - no augmentation for validation)
     val_datagen = ImageDataGenerator(rescale=1./255)
     
     # Load training data
@@ -64,31 +69,58 @@ def create_data_generators():
 
 def create_model(model_type='efficientnet'):
     """
-    Create model architecture
+    Create model architecture optimized for histopathology images
     
     Args:
-        model_type: 'efficientnet', 'resnet50', 'mobilenet', or 'custom'
+        model_type: 'efficientnet', 'densenet', 'resnet50', 'mobilenet', or 'custom'
     """
     
     if model_type == 'efficientnet':
-        # Transfer learning with EfficientNetB0
+        # Transfer learning with EfficientNetB0 - good for histopathology
         base_model = EfficientNetB0(
             include_top=False,
             weights='imagenet',
             input_shape=(*IMG_SIZE, 3)
         )
-        base_model.trainable = False  # Freeze base model
+        base_model.trainable = False  # Initially freeze, can unfreeze later for fine-tuning
         
         model = models.Sequential([
             base_model,
             layers.GlobalAveragePooling2D(),
+            layers.BatchNormalization(),
+            layers.Dropout(0.4),
+            layers.Dense(256, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+            layers.BatchNormalization(),
             layers.Dropout(0.3),
-            layers.Dense(128, activation='relu'),
+            layers.Dense(128, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+            layers.Dropout(0.2),
+            layers.Dense(1, activation='sigmoid')
+        ])
+    
+    elif model_type == 'densenet':
+        # DenseNet121 - excellent for medical imaging
+        base_model = DenseNet121(
+            include_top=False,
+            weights='imagenet',
+            input_shape=(*IMG_SIZE, 3)
+        )
+        base_model.trainable = False
+        
+        model = models.Sequential([
+            base_model,
+            layers.GlobalAveragePooling2D(),
+            layers.BatchNormalization(),
+            layers.Dropout(0.4),
+            layers.Dense(512, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+            layers.BatchNormalization(),
+            layers.Dropout(0.3),
+            layers.Dense(256, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
             layers.Dropout(0.2),
             layers.Dense(1, activation='sigmoid')
         ])
         
     elif model_type == 'resnet50':
+        # ResNet50 - robust architecture for histopathology
         base_model = ResNet50(
             include_top=False,
             weights='imagenet',
@@ -99,8 +131,12 @@ def create_model(model_type='efficientnet'):
         model = models.Sequential([
             base_model,
             layers.GlobalAveragePooling2D(),
+            layers.BatchNormalization(),
+            layers.Dropout(0.4),
+            layers.Dense(512, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+            layers.BatchNormalization(),
             layers.Dropout(0.3),
-            layers.Dense(256, activation='relu'),
+            layers.Dense(256, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
             layers.Dropout(0.2),
             layers.Dense(1, activation='sigmoid')
         ])
@@ -122,19 +158,46 @@ def create_model(model_type='efficientnet'):
             layers.Dense(1, activation='sigmoid')
         ])
         
-    else:  # Custom CNN
+    else:  # Custom CNN - deeper architecture for histopathology
         model = models.Sequential([
-            layers.Conv2D(32, (3, 3), activation='relu', input_shape=(*IMG_SIZE, 3)),
+            # Block 1
+            layers.Conv2D(64, (3, 3), activation='relu', padding='same', input_shape=(*IMG_SIZE, 3)),
+            layers.BatchNormalization(),
+            layers.Conv2D(64, (3, 3), activation='relu', padding='same'),
+            layers.BatchNormalization(),
             layers.MaxPooling2D(2, 2),
-            layers.Conv2D(64, (3, 3), activation='relu'),
+            layers.Dropout(0.2),
+            
+            # Block 2
+            layers.Conv2D(128, (3, 3), activation='relu', padding='same'),
+            layers.BatchNormalization(),
+            layers.Conv2D(128, (3, 3), activation='relu', padding='same'),
+            layers.BatchNormalization(),
             layers.MaxPooling2D(2, 2),
-            layers.Conv2D(128, (3, 3), activation='relu'),
+            layers.Dropout(0.2),
+            
+            # Block 3
+            layers.Conv2D(256, (3, 3), activation='relu', padding='same'),
+            layers.BatchNormalization(),
+            layers.Conv2D(256, (3, 3), activation='relu', padding='same'),
+            layers.BatchNormalization(),
             layers.MaxPooling2D(2, 2),
-            layers.Conv2D(128, (3, 3), activation='relu'),
+            layers.Dropout(0.3),
+            
+            # Block 4
+            layers.Conv2D(512, (3, 3), activation='relu', padding='same'),
+            layers.BatchNormalization(),
+            layers.Conv2D(512, (3, 3), activation='relu', padding='same'),
+            layers.BatchNormalization(),
             layers.MaxPooling2D(2, 2),
-            layers.Flatten(),
+            layers.Dropout(0.3),
+            
+            # Classifier
+            layers.GlobalAveragePooling2D(),
+            layers.Dense(512, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+            layers.BatchNormalization(),
             layers.Dropout(0.5),
-            layers.Dense(512, activation='relu'),
+            layers.Dense(256, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
             layers.Dropout(0.3),
             layers.Dense(1, activation='sigmoid')
         ])
@@ -161,62 +224,110 @@ def train_model():
     
     # Create model
     print("\n🏗️  Building model...")
-    model = create_model(model_type='efficientnet')  # Change model type here
+    # Choose: 'efficientnet', 'densenet', 'resnet50', 'mobilenet', or 'custom'
+    # DenseNet and EfficientNet work well for histopathology
+    model = create_model(model_type='densenet')  # Recommended for histopathology
+    
+    # Compile model with class weights if data is imbalanced
+    # Calculate class weights based on your dataset
+    total_samples = train_generator.samples
+    # For binary classification, adjust if needed
+    pos_samples = sum(train_generator.labels)
+    neg_samples = total_samples - pos_samples
+    
+    if pos_samples > 0 and neg_samples > 0:
+        weight_for_0 = (1 / neg_samples) * (total_samples / 2.0)
+        weight_for_1 = (1 / pos_samples) * (total_samples / 2.0)
+        class_weight = {0: weight_for_0, 1: weight_for_1}
+        print(f"\n⚖️  Class weights: {class_weight}")
+    else:
+        class_weight = None
     
     # Compile model
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE),
         loss='binary_crossentropy',
-        metrics=['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()]
+        metrics=[
+            'accuracy',
+            tf.keras.metrics.Precision(name='precision'),
+            tf.keras.metrics.Recall(name='recall'),
+            tf.keras.metrics.AUC(name='auc')
+        ]
     )
     
     print("\n📋 Model Summary:")
     model.summary()
     
     # Callbacks
+    log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     callbacks = [
         ModelCheckpoint(
             'models/oral_cancer_model.h5',
-            monitor='val_accuracy',
+            monitor='val_auc',  # AUC is better metric for medical imaging
+            mode='max',
             save_best_only=True,
             verbose=1
         ),
         EarlyStopping(
             monitor='val_loss',
-            patience=10,
+            patience=15,  # Increased patience for histopathology
             restore_best_weights=True,
             verbose=1
         ),
         ReduceLROnPlateau(
             monitor='val_loss',
             factor=0.5,
-            patience=5,
+            patience=7,
             min_lr=1e-7,
             verbose=1
+        ),
+        TensorBoard(
+            log_dir=log_dir,
+            histogram_freq=1,
+            write_graph=True
         )
     ]
     
     # Train model
     print("\n🚀 Starting training...")
+    print(f"📊 TensorBoard logs: {log_dir}")
+    print("   Run: tensorboard --logdir=logs/fit\n")
+    
     history = model.fit(
         train_generator,
         epochs=EPOCHS,
         validation_data=val_generator,
         callbacks=callbacks,
+        class_weight=class_weight,  # Handle class imbalance
         verbose=1
     )
     
     # Evaluate model
     print("\n📊 Evaluating model...")
-    val_loss, val_accuracy, val_precision, val_recall = model.evaluate(val_generator)
+    results = model.evaluate(val_generator)
+    
+    # Extract metrics
+    val_loss = results[0]
+    val_accuracy = results[1]
+    val_precision = results[2]
+    val_recall = results[3]
+    val_auc = results[4]
+    
+    # Calculate F1 Score
+    if val_precision + val_recall > 0:
+        f1_score = 2 * (val_precision * val_recall) / (val_precision + val_recall)
+    else:
+        f1_score = 0.0
     
     print("\n" + "=" * 60)
     print("✅ Training Complete!")
     print("=" * 60)
+    print(f"Validation Loss: {val_loss:.4f}")
     print(f"Validation Accuracy: {val_accuracy * 100:.2f}%")
     print(f"Validation Precision: {val_precision * 100:.2f}%")
     print(f"Validation Recall: {val_recall * 100:.2f}%")
-    print(f"F1 Score: {2 * (val_precision * val_recall) / (val_precision + val_recall):.2f}")
+    print(f"Validation AUC: {val_auc:.4f}")
+    print(f"F1 Score: {f1_score:.4f}")
     print("=" * 60)
     
     # Plot training history
@@ -252,22 +363,24 @@ def plot_history(history):
     axes[0, 1].grid(True)
     
     # Precision
-    axes[1, 0].plot(history.history['precision'], label='Train Precision')
-    axes[1, 0].plot(history.history['val_precision'], label='Val Precision')
-    axes[1, 0].set_title('Model Precision')
-    axes[1, 0].set_xlabel('Epoch')
-    axes[1, 0].set_ylabel('Precision')
-    axes[1, 0].legend()
-    axes[1, 0].grid(True)
+    if 'precision' in history.history:
+        axes[1, 0].plot(history.history['precision'], label='Train Precision')
+        axes[1, 0].plot(history.history['val_precision'], label='Val Precision')
+        axes[1, 0].set_title('Model Precision')
+        axes[1, 0].set_xlabel('Epoch')
+        axes[1, 0].set_ylabel('Precision')
+        axes[1, 0].legend()
+        axes[1, 0].grid(True)
     
-    # Recall
-    axes[1, 1].plot(history.history['recall'], label='Train Recall')
-    axes[1, 1].plot(history.history['val_recall'], label='Val Recall')
-    axes[1, 1].set_title('Model Recall')
-    axes[1, 1].set_xlabel('Epoch')
-    axes[1, 1].set_ylabel('Recall')
-    axes[1, 1].legend()
-    axes[1, 1].grid(True)
+    # AUC
+    if 'auc' in history.history:
+        axes[1, 1].plot(history.history['auc'], label='Train AUC')
+        axes[1, 1].plot(history.history['val_auc'], label='Val AUC')
+        axes[1, 1].set_title('Model AUC')
+        axes[1, 1].set_xlabel('Epoch')
+        axes[1, 1].set_ylabel('AUC')
+        axes[1, 1].legend()
+        axes[1, 1].grid(True)
     
     plt.tight_layout()
     plt.savefig('models/training_history.png', dpi=300, bbox_inches='tight')

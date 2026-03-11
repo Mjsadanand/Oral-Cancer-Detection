@@ -14,7 +14,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Oral Cancer Detection API")
+app = FastAPI(title="Oral Cancer Detection API - Histopathology Analysis")
 
 # CORS middleware
 app.add_middleware(
@@ -49,17 +49,19 @@ async def load_model():
         logger.error(f"❌ Error loading model: {str(e)}")
 
 def preprocess_image(image: Image.Image, target_size=(224, 224)):
-    """Preprocess image for model prediction"""
-    # Convert to RGB if necessary
+    """Preprocess histopathology image for model prediction"""
+    # Convert to RGB if necessary (important for histopathology images)
     if image.mode != 'RGB':
         image = image.convert('RGB')
     
-    # Resize image
-    image = image.resize(target_size)
+    # Resize image with high-quality resampling
+    image = image.resize(target_size, Image.Resampling.LANCZOS)
     
-    # Convert to array and normalize
-    img_array = np.array(image)
-    img_array = img_array / 255.0  # Normalize to [0,1]
+    # Convert to array with proper dtype
+    img_array = np.array(image, dtype=np.float32)
+    
+    # Normalize to [0,1] - must match training preprocessing
+    img_array = img_array / 255.0
     
     # Add batch dimension
     img_array = np.expand_dims(img_array, axis=0)
@@ -75,19 +77,19 @@ async def read_root():
 @app.post("/api/predict")
 async def predict(file: UploadFile = File(...)):
     """
-    Predict oral cancer from uploaded image
+    Predict oral cancer from uploaded histopathology image
     """
     if model is None:
         raise HTTPException(
             status_code=503,
-            detail="Model not loaded. Please ensure the model file exists."
+            detail="Model not loaded. Please ensure the model file exists and is trained."
         )
     
     # Validate file type
     if not file.content_type.startswith("image/"):
         raise HTTPException(
             status_code=400,
-            detail="File must be an image"
+            detail="File must be an image (JPEG, PNG, etc.)"
         )
     
     try:
@@ -95,72 +97,107 @@ async def predict(file: UploadFile = File(...)):
         image_data = await file.read()
         image = Image.open(io.BytesIO(image_data))
         
+        # Log image info
+        logger.info(f"Processing image: {file.filename}, Size: {image.size}, Mode: {image.mode}")
+        
         # Preprocess
         processed_image = preprocess_image(image)
         
         # Make prediction
         predictions = model.predict(processed_image, verbose=0)
         
-        # Get prediction results
-        confidence = float(predictions[0][0])
+        # Get prediction results (binary classification)
+        raw_score = float(predictions[0][0])
         
-        # Determine class (adjust based on your model output)
-        if len(predictions[0]) > 1:
-            # Multi-class classification
-            predicted_class = int(np.argmax(predictions[0]))
-            confidence = float(predictions[0][predicted_class])
-        else:
-            # Binary classification
-            predicted_class = 1 if confidence > 0.5 else 0
-            confidence = confidence if predicted_class == 1 else 1 - confidence
+        # Determine class with threshold
+        threshold = 0.5
+        predicted_class = 1 if raw_score > threshold else 0
+        confidence = raw_score if predicted_class == 1 else 1 - raw_score
         
         result = {
             "prediction": CLASS_LABELS.get(predicted_class, "Unknown"),
             "confidence": round(confidence * 100, 2),
-            "risk_level": get_risk_level(confidence),
+            "raw_score": round(raw_score, 4),
+            "risk_level": get_risk_level(predicted_class, confidence),
             "recommendations": get_recommendations(predicted_class, confidence)
         }
         
-        logger.info(f"Prediction: {result['prediction']} ({result['confidence']}%)")
+        logger.info(f"Prediction: {result['prediction']} ({result['confidence']}%) - Risk: {result['risk_level']}")
         
         return JSONResponse(content=result)
     
     except Exception as e:
-        logger.error(f"Prediction error: {str(e)}")
+        logger.error(f"Prediction error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
-def get_risk_level(confidence: float) -> str:
-    """Determine risk level based on confidence"""
-    if confidence >= 0.8:
-        return "High"
-    elif confidence >= 0.6:
-        return "Moderate"
-    else:
-        return "Low"
+def get_risk_level(predicted_class: int, confidence: float) -> str:
+    """Determine risk level based on prediction and confidence for histopathology"""
+    if predicted_class == 1:  # Cancerous
+        if confidence >= 0.85:
+            return "Very High"
+        elif confidence >= 0.70:
+            return "High"
+        else:
+            return "Moderate"
+    else:  # Normal
+        if confidence >= 0.85:
+            return "Very Low"
+        elif confidence >= 0.70:
+            return "Low"
+        else:
+            return "Uncertain"
 
 def get_recommendations(predicted_class: int, confidence: float) -> list:
-    """Provide recommendations based on prediction"""
+    """Provide recommendations based on histopathology prediction"""
     if predicted_class == 1:  # Cancerous
-        return [
-            "⚠️ Urgent: Please consult an oncologist immediately",
-            "📋 Get a professional biopsy for confirmation",
-            "🏥 Schedule an appointment at a cancer care center",
-            "📱 Do not delay medical consultation"
-        ]
-    else:  # Normal
-        if confidence < 0.7:
+        if confidence >= 0.85:
             return [
-                "✅ Appears normal, but confidence is moderate",
-                "🔍 Consider a follow-up check if symptoms persist",
-                "👨‍⚕️ Maintain regular dental check-ups",
-                "🦷 Practice good oral hygiene"
+                "⚠️ URGENT: High confidence of malignancy detected",
+                "🏭 Immediate referral to oncology specialist required",
+                "📋 Professional histopathological confirmation needed",
+                "🏥 Discuss treatment options with oncologist immediately",
+                "📞 Schedule biopsy and imaging studies"
+            ]
+        elif confidence >= 0.70:
+            return [
+                "⚠️ Warning: Suspicious findings detected in tissue sample",
+                "📋 Get professional histopathological review",
+                "🏭 Consult with an oncologist or pathologist",
+                "🔬 Additional diagnostic tests recommended",
+                "📱 Do not delay medical consultation"
             ]
         else:
             return [
-                "✅ No signs of cancer detected",
-                "🦷 Maintain regular oral hygiene",
-                "👨‍⚕️ Continue routine dental check-ups",
-                "🥗 Follow a healthy lifestyle"
+                "⚠️ Possible abnormality detected (moderate confidence)",
+                "🔍 Further examination recommended",
+                "👨‍⚕️ Consult with a specialist",
+                "📋 Consider additional biopsies from different areas",
+                "📊 Follow-up testing advised"
+            ]
+    else:  # Normal
+        if confidence >= 0.85:
+            return [
+                "✅ No malignancy detected with high confidence",
+                "🧬 Tissue appears normal in this sample",
+                "👨‍⚕️ Continue routine medical check-ups",
+                "🥗 Maintain healthy oral hygiene practices",
+                "📅 Regular screening as per medical guidelines"
+            ]
+        elif confidence >= 0.70:
+            return [
+                "✅ Appears normal, but moderate confidence",
+                "🔍 Consider follow-up if clinical symptoms persist",
+                "👨‍⚕️ Consult with physician about findings",
+                "🥗 Maintain good oral health",
+                "📋 May need additional sampling if indicated"
+            ]
+        else:
+            return [
+                "⚠️ Uncertain classification - low confidence",
+                "🔍 Additional testing strongly recommended",
+                "👨‍⚕️ Professional pathologist review needed",
+                "📋 Consider repeat biopsy or additional samples",
+                "📞 Schedule follow-up examination"
             ]
 
 @app.get("/api/health")
