@@ -1,6 +1,6 @@
 """
-Image Renaming Script for Histopathology Images
-Renames cancerous images to a standardized format
+Image Renaming Script for Histopathology Normal Images
+Renames normal (non-cancerous) images to a standardized format
 """
 
 import os
@@ -18,7 +18,7 @@ def extract_image_number(filename: str) -> int:
     Handles patterns like:
     - aug_65_1927 -> 1927
     - OSCC_400x_54 -> 54
-    - cancer_001 -> 1
+    - normal_001 -> 1
     """
     # Try to find all numbers in the filename
     numbers = re.findall(r'\d+', filename)
@@ -43,7 +43,7 @@ def get_file_extension(filename: str) -> str:
 
 def rename_images_in_directory(
     directory: Path,
-    prefix: str = "cancer",
+    prefix: str = "normal",
     start_index: int = 1,
     dry_run: bool = True,
     backup: bool = True
@@ -53,7 +53,7 @@ def rename_images_in_directory(
     
     Args:
         directory: Path to the directory containing images
-        prefix: Prefix for renamed files (default: "cancer")
+        prefix: Prefix for renamed files (default: "normal")
         start_index: Starting index for numbering (default: 1)
         dry_run: If True, only show what would be renamed without actually renaming
         backup: If True and not dry_run, create a backup of original files
@@ -157,8 +157,8 @@ def rename_images_in_directory(
 
 def rename_dataset_structure(
     dataset_path: Path,
-    train_prefix: str = "cancer_train",
-    val_prefix: str = "cancer_val",
+    train_prefix: str = "normal_train",
+    val_prefix: str = "normal_val",
     dry_run: bool = True,
     backup: bool = True
 ):
@@ -168,13 +168,13 @@ def rename_dataset_structure(
     Expected structure:
     dataset/
     ├── train/
-    │   └── cancerous/
+    │   └── normal/
     └── validation/
-        └── cancerous/
+        └── normal/
     """
     
     print("\n" + "=" * 80)
-    print("🏥 Histopathology Image Renaming Tool")
+    print("🏥 Histopathology Normal Image Renaming Tool")
     print("=" * 80)
     
     if not dataset_path.exists():
@@ -182,32 +182,32 @@ def rename_dataset_structure(
         return
     
     # Rename training images
-    train_cancer_path = dataset_path / "train" / "cancerous"
-    if train_cancer_path.exists():
-        print(f"\n📂 Processing: {train_cancer_path}")
+    train_normal_path = dataset_path / "train" / "normal"
+    if train_normal_path.exists():
+        print(f"\n📂 Processing: {train_normal_path}")
         rename_images_in_directory(
-            train_cancer_path,
+            train_normal_path,
             prefix=train_prefix,
             start_index=1,
             dry_run=dry_run,
             backup=backup
         )
     else:
-        print(f"⚠️ Training cancerous folder not found: {train_cancer_path}")
+        print(f"⚠️ Training normal folder not found: {train_normal_path}")
     
     # Rename validation images
-    val_cancer_path = dataset_path / "validation" / "cancerous"
-    if val_cancer_path.exists():
-        print(f"\n📂 Processing: {val_cancer_path}")
+    val_normal_path = dataset_path / "validation" / "normal"
+    if val_normal_path.exists():
+        print(f"\n📂 Processing: {val_normal_path}")
         rename_images_in_directory(
-            val_cancer_path,
+            val_normal_path,
             prefix=val_prefix,
             start_index=1,
             dry_run=dry_run,
             backup=backup
         )
     else:
-        print(f"⚠️ Validation cancerous folder not found: {val_cancer_path}")
+        print(f"⚠️ Validation normal folder not found: {val_normal_path}")
     
     print("\n" + "=" * 80)
     if dry_run:
@@ -228,7 +228,7 @@ def interactive_directory_selector(dataset_path: Path):
         List of tuples: (directory_path, prefix)
     """
     print("\n" + "=" * 80)
-    print("🏥 Histopathology Image Renaming Tool - Directory Selector")
+    print("🏥 Histopathology Normal Image Renaming Tool - Directory Selector")
     print("=" * 80)
     
     if not dataset_path.exists():
@@ -238,20 +238,10 @@ def interactive_directory_selector(dataset_path: Path):
     # Find all available directories
     available_dirs = []
     
-    # Check train/cancerous
-    train_cancer = dataset_path / "train" / "cancerous"
-    if train_cancer.exists():
-        available_dirs.append((train_cancer, "cancer_train", "Train - Cancerous"))
-    
     # Check train/normal
     train_normal = dataset_path / "train" / "normal"
     if train_normal.exists():
         available_dirs.append((train_normal, "normal_train", "Train - Normal"))
-    
-    # Check validation/cancerous
-    val_cancer = dataset_path / "validation" / "cancerous"
-    if val_cancer.exists():
-        available_dirs.append((val_cancer, "cancer_val", "Validation - Cancerous"))
     
     # Check validation/normal
     val_normal = dataset_path / "validation" / "normal"
@@ -273,7 +263,7 @@ def interactive_directory_selector(dataset_path: Path):
         print()
     
     # Get user selection
-    print("📋 Select directories to rename (comma-separated, e.g., 1,2,3 or 'a' for all):")
+    print("📋 Select directories to rename (comma-separated, e.g., 1,2 or 'a' for all):")
     user_input = input("  > ").strip().lower()
     
     selected_dirs = []
@@ -299,24 +289,24 @@ def interactive_directory_selector(dataset_path: Path):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Rename histopathology images to standardized format',
+        description='Rename normal histopathology images to standardized format',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   # Interactive mode (default - select directories):
-  python rename_images.py
+  python rename_normal_images.py
   
   # Execute with interactive selection:
-  python rename_images.py --execute
+  python rename_normal_images.py --execute
   
   # Rename specific directory:
-  python rename_images.py --dir dataset/train/cancerous --prefix oscc --execute
+  python rename_normal_images.py --dir dataset/train/normal --prefix specimen --execute
   
   # Custom dataset path with interactive selection:
-  python rename_images.py --dataset-path /path/to/dataset --execute
+  python rename_normal_images.py --dataset-path /path/to/dataset --execute
   
   # Skip interactive and use batch mode:
-  python rename_images.py --no-interactive --execute
+  python rename_normal_images.py --no-interactive --execute
         """
     )
     
@@ -336,8 +326,8 @@ Examples:
     parser.add_argument(
         '--prefix',
         type=str,
-        default='cancer',
-        help='Prefix for renamed files (default: cancer)'
+        default='normal',
+        help='Prefix for renamed files (default: normal)'
     )
     
     parser.add_argument(
@@ -374,7 +364,7 @@ Examples:
         # Rename specific directory
         directory = Path(args.dir)
         print("\n" + "=" * 80)
-        print("🏥 Histopathology Image Renaming Tool")
+        print("🏥 Histopathology Normal Image Renaming Tool")
         print("=" * 80)
         rename_images_in_directory(
             directory,
@@ -387,12 +377,12 @@ Examples:
         # Batch mode - rename full dataset structure
         dataset_path = Path(args.dataset_path)
         print("\n" + "=" * 80)
-        print("🏥 Histopathology Image Renaming Tool - Batch Mode")
+        print("🏥 Histopathology Normal Image Renaming Tool - Batch Mode")
         print("=" * 80)
         rename_dataset_structure(
             dataset_path,
-            train_prefix="cancer_train",
-            val_prefix="cancer_val",
+            train_prefix="normal_train",
+            val_prefix="normal_val",
             dry_run=dry_run,
             backup=backup
         )
