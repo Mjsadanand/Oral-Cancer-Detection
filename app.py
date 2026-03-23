@@ -2,6 +2,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 import uvicorn
 import numpy as np
 from PIL import Image
@@ -14,7 +15,30 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Oral Cancer Detection API - Histopathology Analysis")
+# Global model variable
+model = None
+MODEL_PATH = "models/oral_cancer_model.h5"
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle application startup and shutdown"""
+    # Startup: Load the model
+    global model
+    try:
+        if Path(MODEL_PATH).exists():
+            model = tf.keras.models.load_model(MODEL_PATH)
+            logger.info("✅ Model loaded successfully!")
+        else:
+            logger.warning(f"⚠️ Model not found at {MODEL_PATH}. Please train and save your model.")
+    except Exception as e:
+        logger.error(f"❌ Error loading model: {str(e)}")
+    
+    yield
+    
+    # Shutdown cleanup (if needed)
+    pass
+
+app = FastAPI(title="Oral Cancer Detection API - Histopathology Analysis", lifespan=lifespan)
 
 # CORS middleware
 app.add_middleware(
@@ -25,28 +49,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global model variable
-model = None
-MODEL_PATH = "models/oral_cancer_model.h5"
-
 # Class labels
 CLASS_LABELS = {
     0: "Normal",
     1: "Cancerous"
 }
-
-@app.on_event("startup")
-async def load_model():
-    """Load the trained model on startup"""
-    global model
-    try:
-        if Path(MODEL_PATH).exists():
-            model = tf.keras.models.load_model(MODEL_PATH)
-            logger.info("✅ Model loaded successfully!")
-        else:
-            logger.warning(f"⚠️ Model not found at {MODEL_PATH}. Please train and save your model.")
-    except Exception as e:
-        logger.error(f"❌ Error loading model: {str(e)}")
 
 def preprocess_image(image: Image.Image, target_size=(224, 224)):
     """Preprocess histopathology image for model prediction"""
@@ -217,4 +224,4 @@ if __name__ == "__main__":
     Path("static").mkdir(exist_ok=True)
     Path("uploads").mkdir(exist_ok=True)
     
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
