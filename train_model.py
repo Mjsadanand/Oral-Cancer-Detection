@@ -22,11 +22,48 @@ EPOCHS = 100  # Increased for better convergence
 LEARNING_RATE = 0.0001  # Lower learning rate for fine-tuning
 
 # Dataset paths - Update these with your dataset location
-DATASET_PATH = "dataset"  # Should contain 'train' and 'validation' folders
-                          # Each folder should have 'normal' and 'cancerous' subfolders
+BASE_DIR = Path(__file__).resolve().parent
+DEFAULT_DATASET_PATH = BASE_DIR / "dataset"
+DATASET_PATH = Path(os.getenv("DATASET_PATH", str(DEFAULT_DATASET_PATH)))
+
+
+def resolve_dataset_path():
+    """Resolve dataset path from env/cwd/script-dir for more reliable execution."""
+    if DATASET_PATH.is_absolute():
+        return DATASET_PATH
+
+    candidates = [
+        (Path.cwd() / DATASET_PATH),
+        (BASE_DIR / DATASET_PATH),
+    ]
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    return candidates[0]
+
+
+def find_validation_dir(dataset_root):
+    """Find validation directory with common naming variants."""
+    for folder_name in ["validation", "val", "valid"]:
+        candidate = dataset_root / folder_name
+        if candidate.exists():
+            return candidate
+    return None
 
 def create_data_generators():
     """Create data generators with histopathology-specific augmentation"""
+    dataset_root = resolve_dataset_path()
+    train_dir = dataset_root / "train"
+    validation_dir = find_validation_dir(dataset_root)
+
+    if not train_dir.exists():
+        raise FileNotFoundError(
+            f"Training directory not found: {train_dir}. "
+            "Expected '<dataset>/train/<class_name>' structure. "
+            "Set DATASET_PATH env var if your dataset is elsewhere."
+        )
     
     # Training data augmentation - optimized for histopathology
     # Histopathology images benefit from extensive augmentation
@@ -47,23 +84,69 @@ def create_data_generators():
     # Validation data (only rescaling - no augmentation for validation)
     val_datagen = ImageDataGenerator(rescale=1./255)
     
-    # Load training data
-    train_generator = train_datagen.flow_from_directory(
-        os.path.join(DATASET_PATH, 'train'),
-        target_size=IMG_SIZE,
-        batch_size=BATCH_SIZE,
-        class_mode='binary',  # For binary classification
-        shuffle=True
-    )
-    
-    # Load validation data
-    val_generator = val_datagen.flow_from_directory(
-        os.path.join(DATASET_PATH, 'validation'),
-        target_size=IMG_SIZE,
-        batch_size=BATCH_SIZE,
-        class_mode='binary',
-        shuffle=False
-    )
+    if validation_dir is not None:
+        # Standard setup: train and validation are separate directories.
+        train_generator = train_datagen.flow_from_directory(
+            str(train_dir),
+            target_size=IMG_SIZE,
+            batch_size=BATCH_SIZE,
+            class_mode='binary',  # For binary classification
+            shuffle=True
+        )
+
+        val_generator = val_datagen.flow_from_directory(
+            str(validation_dir),
+            target_size=IMG_SIZE,
+            batch_size=BATCH_SIZE,
+            class_mode='binary',
+            shuffle=False
+        )
+    else:
+        # Fallback: derive validation split from train directory.
+        split_ratio = 0.2
+        train_datagen_split = ImageDataGenerator(
+            rescale=1./255,
+            rotation_range=180,
+            width_shift_range=0.2,
+            height_shift_range=0.2,
+            horizontal_flip=True,
+            vertical_flip=True,
+            zoom_range=0.15,
+            shear_range=0.1,
+            brightness_range=[0.85, 1.15],
+            channel_shift_range=0.1,
+            fill_mode='reflect',
+            validation_split=split_ratio
+        )
+        val_datagen_split = ImageDataGenerator(
+            rescale=1./255,
+            validation_split=split_ratio
+        )
+
+        print(
+            "⚠️  No separate validation folder found. "
+            f"Using {int(split_ratio * 100)}% of train data for validation."
+        )
+
+        train_generator = train_datagen_split.flow_from_directory(
+            str(train_dir),
+            target_size=IMG_SIZE,
+            batch_size=BATCH_SIZE,
+            class_mode='binary',
+            subset='training',
+            seed=42,
+            shuffle=True
+        )
+
+        val_generator = val_datagen_split.flow_from_directory(
+            str(train_dir),
+            target_size=IMG_SIZE,
+            batch_size=BATCH_SIZE,
+            class_mode='binary',
+            subset='validation',
+            seed=42,
+            shuffle=False
+        )
     
     return train_generator, val_generator
 
@@ -388,10 +471,14 @@ def plot_history(history):
     plt.show()
 
 if __name__ == "__main__":
+    dataset_root = resolve_dataset_path()
+    train_dir = dataset_root / "train"
+
     # Check if dataset exists
-    if not os.path.exists(DATASET_PATH):
+    if not dataset_root.exists() or not train_dir.exists():
         print("❌ Dataset folder not found!")
-        print(f"Please create a '{DATASET_PATH}' folder with the following structure:")
+        print(f"Resolved dataset path: {dataset_root}")
+        print("Please create a dataset folder with the following structure:")
         print("""
         dataset/
         ├── train/
