@@ -3,6 +3,7 @@ uvicorn[standard]>=0.32.0
 python-multipart>=0.0.12
 pillow>=10.4.0
 tensorflow>=2.20.0
+tensorboard>=2.20.0
 numpy>=2.0.0
 opencv-python>=4.10.0
 pydantic>=2.9.0

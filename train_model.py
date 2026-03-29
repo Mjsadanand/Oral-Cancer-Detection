@@ -15,6 +15,12 @@ from pathlib import Path
 import os
 import datetime
 
+try:
+    import tensorboard  # noqa: F401
+    HAS_TENSORBOARD = True
+except ImportError:
+    HAS_TENSORBOARD = False
+
 # Configuration for Histopathology Images
 IMG_SIZE = (224, 224)  # Can be increased to (299, 299) or (512, 512) for better results
 BATCH_SIZE = 16  # Reduced for larger images and complex models
@@ -363,18 +369,28 @@ def train_model():
             patience=7,
             min_lr=1e-7,
             verbose=1
-        ),
-        TensorBoard(
-            log_dir=log_dir,
-            histogram_freq=1,
-            write_graph=True
         )
     ]
+
+    if HAS_TENSORBOARD:
+        callbacks.append(
+            TensorBoard(
+                log_dir=log_dir,
+                histogram_freq=1,
+                write_graph=True
+            )
+        )
+    else:
+        print("⚠️  TensorBoard package not found. Training will continue without TensorBoard logging.")
+        print("   Install with: pip install tensorboard")
     
     # Train model
     print("\n🚀 Starting training...")
-    print(f"📊 TensorBoard logs: {log_dir}")
-    print("   Run: tensorboard --logdir=logs/fit\n")
+    if HAS_TENSORBOARD:
+        print(f"📊 TensorBoard logs: {log_dir}")
+        print("   Run: tensorboard --logdir=logs/fit\n")
+    else:
+        print("📊 TensorBoard logging: disabled (package not installed)\n")
     
     history = model.fit(
         train_generator,
