@@ -14,6 +14,7 @@ import numpy as np
 from pathlib import Path
 import os
 import datetime
+import json
 
 try:
     import tensorboard  # noqa: F401
@@ -310,6 +311,12 @@ def train_model():
     print(f"✅ Training samples: {train_generator.samples}")
     print(f"✅ Validation samples: {val_generator.samples}")
     print(f"📊 Classes: {train_generator.class_indices}")
+
+    # Persist class-index mapping used during training for consistent inference labels.
+    class_indices_path = Path("models") / "class_indices.json"
+    with open(class_indices_path, "w", encoding="utf-8") as f:
+        json.dump(train_generator.class_indices, f, indent=2)
+    print(f"💾 Class mapping saved to '{class_indices_path}'")
     
     # Create model
     print("\n🏗️  Building model...")
