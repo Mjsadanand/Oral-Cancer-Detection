@@ -41,8 +41,6 @@ env/
 # Models (optionally ignore trained models)
 # models/*.h5
 # models/*.keras
-models/training_history.png
-
 # Uploads
 uploads/*
 !uploads/.gitkeep
