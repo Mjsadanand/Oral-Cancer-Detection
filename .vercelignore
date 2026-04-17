@@ -1,0 +1,9 @@
+dataset/
+models/
+uploads/
+.venv/
+__pycache__/
+*.pyc
+*.h5
+*.keras
+*.ckpt

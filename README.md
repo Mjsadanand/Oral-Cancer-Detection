@@ -327,6 +327,30 @@ python app.py
 
 ### Cloud Deployment Options
 
+#### 0. **Vercel (Recommended for UI + Demo API)**
+
+Vercel serverless Python functions have strict package size limits. TensorFlow-based inference from `app.py` is too large for Vercel Lambda storage.
+
+This repository includes a Vercel-ready setup:
+
+- `api/index.py` -> lightweight serverless API (demo mode)
+- `api/requirements.txt` -> minimal dependencies for Vercel build
+- `vercel.json` -> routing for `/api/*` and static UI
+- `.vercelignore` -> excludes large training/model assets
+
+Deploy steps:
+
+```bash
+vercel
+vercel --prod
+```
+
+Notes:
+
+- `requirements.txt` (root) is still for local full AI development/training.
+- Vercel deployment uses `api/requirements.txt` for the serverless function.
+- For real TensorFlow inference in production, deploy `app.py` on a VM/container platform (Render, Railway, Azure App Service, AWS ECS/EC2, GCP Cloud Run with custom container).
+
 #### 1. **Google Cloud Platform**
 ```bash
 gcloud app deploy
