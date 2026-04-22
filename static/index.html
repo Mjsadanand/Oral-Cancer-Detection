@@ -380,6 +380,9 @@
                 });
 
                 const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Prediction request failed');
+                }
                 
                 clearInterval(interval);
                 progressBar.style.width = '100%';
@@ -395,7 +398,7 @@
                 clearInterval(interval);
                 loadingSection.classList.add('hidden');
                 previewSection.classList.remove('hidden');
-                alert('Error analyzing image. Please try again.');
+                alert(`Error analyzing image: ${error.message}`);
                 console.error('Error:', error);
             }
         });

@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 # Global model variable
 model = None
+model_load_error = None
 TFLITE_MODEL_PATH = "models/oral_cancer_model.tflite"
 H5_MODEL_PATH = "models/oral_cancer_model.h5"
 CLASS_INDICES_PATH = "models/class_indices.json"
@@ -52,7 +53,7 @@ def load_class_labels():
 async def lifespan(app: FastAPI):
     """Handle application startup and shutdown"""
     # Startup: Load the TFLite model
-    global model
+    global model, model_load_error
     try:
         tflite_path = Path(TFLITE_MODEL_PATH)
         h5_path = Path(H5_MODEL_PATH)
@@ -65,9 +66,12 @@ async def lifespan(app: FastAPI):
             logger.warning("⚠️ TFLite model not found. Please run: python convert_to_tflite.py")
             logger.info(f"   H5 model exists at {H5_MODEL_PATH}")
             logger.info("   To convert: python convert_to_tflite.py")
+            model_load_error = f"TFLite model not found at {TFLITE_MODEL_PATH}"
         else:
             logger.warning(f"⚠️ Model not found at {TFLITE_MODEL_PATH} or {H5_MODEL_PATH}. Please train and save your model.")
+            model_load_error = "No model artifact found"
     except Exception as e:
+        model_load_error = str(e)
         logger.error(f"❌ Error loading model: {str(e)}")
     
     yield
@@ -117,7 +121,7 @@ async def predict(file: UploadFile = File(...)):
     if model is None:
         raise HTTPException(
             status_code=503,
-            detail="Model not loaded. Convert .h5 to .tflite first: python convert_to_tflite.py"
+            detail=f"Model not loaded: {model_load_error or 'unknown startup error'}"
         )
     
     # Validate file type
@@ -242,11 +246,12 @@ def get_recommendations(is_cancerous: bool, confidence: float) -> list:
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint"""
+    loaded = model is not None
     return {
-        "status": "healthy",
-        "model_loaded": model is not None,
+        "status": "healthy" if loaded else "degraded",
+        "model_loaded": loaded,
         "runtime": "tflite-lightweight",
-        "message": "TensorFlow Lite inference enabled"
+        "message": "TensorFlow Lite inference enabled" if loaded else f"Model unavailable: {model_load_error or 'startup issue'}"
     }
 
 # Mount static files
