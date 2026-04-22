@@ -9,13 +9,3 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11
-
-  - type: static_site
-    name: oral-cancer-frontend
-    staticPublishPath: ./static
-    buildCommand: echo "Frontend ready"
-    routes:
-      - path: /api/*
-        destination: http://oral-cancer-backend:8000/api/*
-      - path: /*
-        destination: /index.html
