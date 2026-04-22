@@ -7,10 +7,10 @@ import uvicorn
 import numpy as np
 from PIL import Image
 import io
-import tensorflow as tf
 from pathlib import Path
 import logging
 import json
+from tflite_inference import TFLiteInference
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 
 # Global model variable
 model = None
-MODEL_PATH = "models/oral_cancer_model.h5"
+TFLITE_MODEL_PATH = "models/oral_cancer_model.tflite"
+H5_MODEL_PATH = "models/oral_cancer_model.h5"
 CLASS_INDICES_PATH = "models/class_indices.json"
 
 # Populated from class_indices.json if present.
@@ -50,21 +51,28 @@ def load_class_labels():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handle application startup and shutdown"""
-    # Startup: Load the model
+    # Startup: Load the TFLite model
     global model
     try:
-        if Path(MODEL_PATH).exists():
-            model = tf.keras.models.load_model(MODEL_PATH)
-            logger.info("✅ Model loaded successfully!")
+        tflite_path = Path(TFLITE_MODEL_PATH)
+        h5_path = Path(H5_MODEL_PATH)
+        
+        if tflite_path.exists():
+            model = TFLiteInference(TFLITE_MODEL_PATH)
+            logger.info("✅ TFLite model loaded successfully!")
             load_class_labels()
+        elif h5_path.exists():
+            logger.warning("⚠️ TFLite model not found. Please run: python convert_to_tflite.py")
+            logger.info(f"   H5 model exists at {H5_MODEL_PATH}")
+            logger.info("   To convert: python convert_to_tflite.py")
         else:
-            logger.warning(f"⚠️ Model not found at {MODEL_PATH}. Please train and save your model.")
+            logger.warning(f"⚠️ Model not found at {TFLITE_MODEL_PATH} or {H5_MODEL_PATH}. Please train and save your model.")
     except Exception as e:
         logger.error(f"❌ Error loading model: {str(e)}")
     
     yield
     
-    # Shutdown cleanup (if needed)
+    # Shutdown cleanup
     pass
 
 app = FastAPI(title="Oral Cancer Detection API - Histopathology Analysis", lifespan=lifespan)
@@ -93,9 +101,6 @@ def preprocess_image(image: Image.Image, target_size=(224, 224)):
     # Normalize to [0,1] - must match training preprocessing
     img_array = img_array / 255.0
     
-    # Add batch dimension
-    img_array = np.expand_dims(img_array, axis=0)
-    
     return img_array
 
 @app.get("/", response_class=HTMLResponse)
@@ -112,11 +117,11 @@ async def predict(file: UploadFile = File(...)):
     if model is None:
         raise HTTPException(
             status_code=503,
-            detail="Model not loaded. Please ensure the model file exists and is trained."
+            detail="Model not loaded. Convert .h5 to .tflite first: python convert_to_tflite.py"
         )
     
     # Validate file type
-    if not file.content_type.startswith("image/"):
+    if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(
             status_code=400,
             detail="File must be an image (JPEG, PNG, etc.)"
@@ -130,11 +135,11 @@ async def predict(file: UploadFile = File(...)):
         # Log image info
         logger.info(f"Processing image: {file.filename}, Size: {image.size}, Mode: {image.mode}")
         
-        # Preprocess
+        # Preprocess (batch dimension added inside TFLiteInference.predict)
         processed_image = preprocess_image(image)
         
-        # Make prediction
-        predictions = model.predict(processed_image, verbose=0)
+        # Make prediction using TFLite
+        predictions = model.predict(processed_image)
         
         # Get prediction results (binary classification)
         raw_score = float(predictions[0][0])
@@ -152,7 +157,8 @@ async def predict(file: UploadFile = File(...)):
             "confidence": round(confidence * 100, 2),
             "raw_score": round(raw_score, 4),
             "risk_level": get_risk_level(is_cancerous, confidence),
-            "recommendations": get_recommendations(is_cancerous, confidence)
+            "recommendations": get_recommendations(is_cancerous, confidence),
+            "runtime": "tflite"
         }
         
         logger.info(f"Prediction: {result['prediction']} ({result['confidence']}%) - Risk: {result['risk_level']}")
@@ -238,7 +244,9 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
-        "model_loaded": model is not None
+        "model_loaded": model is not None,
+        "runtime": "tflite-lightweight",
+        "message": "TensorFlow Lite inference enabled"
     }
 
 # Mount static files

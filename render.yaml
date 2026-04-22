@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: oral-cancer-backend
+    runtime: python
+    buildCommand: pip install -r requirements-tflite.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+
+  - type: static_site
+    name: oral-cancer-frontend
+    staticPublishPath: ./static
+    buildCommand: echo "Frontend ready"
+    routes:
+      - path: /api/*
+        destination: http://oral-cancer-backend:8000/api/*
+      - path: /*
+        destination: /index.html

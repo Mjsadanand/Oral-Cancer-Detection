@@ -1,0 +1,17 @@
+.git
+.gitignore
+.venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.ipynb
+
+# Keep image small: training assets are not needed for inference deployment
+dataset/
+uploads/
+
+# Local docs/artifacts not required in runtime image
+HISTOPATHOLOGY_GUIDE.md
+PROJECT_SUMMARY.md
+QUICKSTART.md

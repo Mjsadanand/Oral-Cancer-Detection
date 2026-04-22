@@ -12,12 +12,15 @@
       "dest": "api/index.py"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/",
       "dest": "/static/index.html"
     },
     {
       "src": "/(.*)",
-      "dest": "/$1"
+      "dest": "/static/index.html"
     }
   ]
 }

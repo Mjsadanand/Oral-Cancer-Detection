@@ -327,7 +327,25 @@ python app.py
 
 ### Cloud Deployment Options
 
-#### 0. **Vercel (Recommended for UI + Demo API)**
+#### 0. **Render (Full Stack - Simplest)**
+
+Deploy frontend + backend together on Render with zero additional setup.
+
+- Frontend: static site (free)
+- Backend: Python web service with TensorFlow (~$7/month)
+- Automatic proxy routing between them
+
+See `RENDER_DEPLOYMENT.md` for step-by-step.
+
+Quick start:
+
+```bash
+git push origin main
+# Then on Render: New → Blueprint, select your repo
+# Auto-deployed from render.yaml
+```
+
+#### 1. **Vercel (Recommended for UI only) + Separate Backend**
 
 Vercel serverless Python functions have strict package size limits. TensorFlow-based inference from `app.py` is too large for Vercel Lambda storage.
 
@@ -345,11 +363,18 @@ vercel
 vercel --prod
 ```
 
-Notes:
+To enable real TensorFlow inference, deploy `app.py` on Render, Azure, Railway, AWS, or GCP, then add to Vercel env vars:
 
-- `requirements.txt` (root) is still for local full AI development/training.
-- Vercel deployment uses `api/requirements.txt` for the serverless function.
-- For real TensorFlow inference in production, deploy `app.py` on a VM/container platform (Render, Railway, Azure App Service, AWS ECS/EC2, GCP Cloud Run with custom container).
+```bash
+INFERENCE_API_BASE_URL=https://your-real-backend.example.com
+```
+
+The Vercel function in `api/index.py` supports two modes:
+
+- **Demo mode** (default): simulated prediction response.
+- **Proxy mode**: forwards `/api/predict` and `/api/health` to your real backend.
+
+See `AZURE_BACKEND_DEPLOY.md` or `RENDER_DEPLOYMENT.md` for backend deployment.
 
 #### 1. **Google Cloud Platform**
 ```bash
@@ -362,6 +387,31 @@ gcloud app deploy
 # Run with gunicorn
 gunicorn -w 4 -k uvicorn.workers.UvicornWorker app:app
 ```
+
+#### 2.1 **Azure App Service (TensorFlow Backend via Docker)**
+
+Use the ready deployment files in this repo:
+
+- `Dockerfile.azure`
+- `requirements-inference.txt`
+- `AZURE_BACKEND_DEPLOY.md`
+
+Quick flow:
+
+1. Build and push container to Azure Container Registry.
+2. Deploy Linux Web App from that container image.
+3. Set `WEBSITES_PORT=8000`.
+4. Put Azure backend URL into Vercel env var:
+
+```bash
+INFERENCE_API_BASE_URL=https://<your-app-name>.azurewebsites.net
+```
+
+5. Redeploy Vercel.
+
+Detailed step-by-step commands are in `AZURE_BACKEND_DEPLOY.md`.
+
+**Tip**: For simpler single-service deployment, use Render instead (see option 0 above).
 
 #### 3. **Docker**
 ```dockerfile
