@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How It Works - OralCare Detection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap');
+
+        :root {
+            --ink: #102a43;
+            --brand: #0f766e;
+            --accent: #ef7d57;
+            --border: #d9e2ec;
+        }
+
+        * {
+            font-family: 'Manrope', sans-serif;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Sora', sans-serif;
+            letter-spacing: -0.02em;
+        }
+
+        body {
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 82% 6%, #ffe8de 0%, transparent 28%),
+                radial-gradient(circle at 18% 14%, #d9f2ee 0%, transparent 32%),
+                linear-gradient(180deg, #f7fbfc 0%, #edf5f7 100%);
+            min-height: 100vh;
+        }
+
+        .card {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+            border: 1px solid var(--border);
+            box-shadow: 0 16px 32px rgba(16, 42, 67, 0.08);
+        }
+
+        .step-dot {
+            background: linear-gradient(135deg, var(--brand) 0%, #14b8a6 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+        <header class="bg-white/85 backdrop-blur rounded-2xl border border-slate-200 px-4 sm:px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl step-dot flex items-center justify-center text-white">
+                    <i class="fas fa-tooth"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">OralCare Detection</p>
+                    <h1 class="text-lg sm:text-xl font-extrabold">How It Works</h1>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="/static/index.html" class="text-sm font-semibold text-slate-700 hover:text-slate-900">Home</a>
+                <a href="/static/contact-doctor.html" class="text-sm font-semibold text-white bg-teal-700 hover:bg-teal-800 rounded-lg px-3 py-2">Contact Doctor</a>
+            </div>
+        </header>
+
+        <main class="mt-6 sm:mt-8 card rounded-3xl p-6 sm:p-10 lg:p-12">
+            <h2 class="text-3xl sm:text-4xl font-extrabold mb-3">From upload to medical follow-up in 4 clear steps</h2>
+            <p class="text-slate-600 mb-8">This AI assistant is designed to help with fast screening, not a final diagnosis. Use these steps for safer usage.</p>
+
+            <div class="space-y-5">
+                <section class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6">
+                    <div class="flex items-start gap-4">
+                        <div class="w-9 h-9 rounded-full step-dot text-white flex items-center justify-center font-bold">1</div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-1">Upload a clear image</h3>
+                            <p class="text-slate-600">Choose a PNG or JPG histopathology image with good clarity and lighting. Blurry or low-quality images reduce confidence.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6">
+                    <div class="flex items-start gap-4">
+                        <div class="w-9 h-9 rounded-full step-dot text-white flex items-center justify-center font-bold">2</div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-1">AI performs classification</h3>
+                            <p class="text-slate-600">The model processes the image and predicts a class with confidence level. This gives a quick screening indicator.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6">
+                    <div class="flex items-start gap-4">
+                        <div class="w-9 h-9 rounded-full step-dot text-white flex items-center justify-center font-bold">3</div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-1">Review risk and recommendations</h3>
+                            <p class="text-slate-600">Check the predicted label, confidence score, and recommendation list. Use it as supportive information only.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6">
+                    <div class="flex items-start gap-4">
+                        <div class="w-9 h-9 rounded-full step-dot text-white flex items-center justify-center font-bold">4</div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-1">Consult an oral specialist</h3>
+                            <p class="text-slate-600">For confirmation and treatment planning, always consult an oral pathologist, oral oncologist, or dentist.</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="mt-8 rounded-2xl bg-amber-50 border border-amber-200 p-5">
+                <h3 class="font-bold text-amber-900 mb-2">Important Disclaimer</h3>
+                <p class="text-sm text-amber-900">This tool is for screening support only and does not replace professional medical diagnosis, biopsy, or pathology review.</p>
+            </div>
+
+            <div class="mt-8 flex flex-wrap gap-3">
+                <a href="/static/index.html" class="text-sm font-semibold text-teal-800 bg-teal-100 hover:bg-teal-200 rounded-lg px-4 py-2">Back to Upload</a>
+                <a href="/static/contact-doctor.html" class="text-sm font-semibold text-orange-800 bg-orange-100 hover:bg-orange-200 rounded-lg px-4 py-2">Find Nearby Doctors</a>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

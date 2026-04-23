@@ -3,285 +3,249 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oral Cancer Detection - AI Powered Diagnosis</title>
+    <title>Oral Cancer Detection - Upload & Analyze</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap');
+
+        :root {
+            --ink: #102a43;
+            --muted: #486581;
+            --surface: #ffffff;
+            --surface-soft: #f5f7fa;
+            --brand: #0f766e;
+            --brand-dark: #115e59;
+            --accent: #ef7d57;
+            --border: #d9e2ec;
+            --ok: #166534;
+            --warn: #9a3412;
+            --danger: #991b1b;
+        }
+
         * {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Manrope', sans-serif;
         }
-        
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+        h1, h2, h3 {
+            font-family: 'Sora', sans-serif;
+            letter-spacing: -0.02em;
         }
-        
-        .gradient-bg-2 {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+
+        body {
+            background:
+                radial-gradient(circle at 15% 12%, #d9f2ee 0%, transparent 35%),
+                radial-gradient(circle at 85% 8%, #ffe8de 0%, transparent 30%),
+                linear-gradient(180deg, #f7fbfc 0%, #edf5f7 100%);
+            color: var(--ink);
+            min-height: 100vh;
         }
-        
-        .gradient-bg-success {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+
+        .main-shell {
+            box-shadow: 0 24px 64px rgba(16, 42, 67, 0.12);
         }
-        
-        .card-hover {
-            transition: all 0.3s ease;
+
+        .brand-chip {
+            background: linear-gradient(135deg, var(--brand) 0%, #14b8a6 100%);
         }
-        
-        .card-hover:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+
+        .upload-surface {
+            border: 2px dashed var(--border);
+            background: var(--surface-soft);
+            transition: all 0.25s ease;
         }
-        
-        .upload-area {
-            border: 3px dashed #cbd5e1;
-            transition: all 0.3s ease;
+
+        .upload-surface:hover,
+        .upload-surface.dragover {
+            border-color: var(--brand);
+            background: #ecfdf7;
+            transform: translateY(-2px);
         }
-        
-        .upload-area.dragover {
-            border-color: #667eea;
-            background-color: #f8f9ff;
+
+        .primary-btn {
+            background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+            transition: all 0.2s ease;
         }
-        
-        .pulse-animation {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+        .primary-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 22px rgba(15, 118, 110, 0.25);
         }
-        
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: .5;
-            }
+
+        .soft-panel {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+            border: 1px solid var(--border);
         }
-        
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
+
         .loader {
-            border: 4px solid #f3f4f6;
-            border-top: 4px solid #667eea;
+            border: 4px solid #e7edf2;
+            border-top: 4px solid var(--brand);
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 46px;
+            height: 46px;
             animation: spin 1s linear infinite;
         }
-        
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
+
         .progress-bar {
-            height: 4px;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 6px;
+            width: 0;
+            background: linear-gradient(90deg, var(--brand) 0%, #2dd4bf 100%);
             transition: width 0.3s ease;
+        }
+
+        .rise-in {
+            animation: riseIn 0.45s ease;
+        }
+
+        @keyframes riseIn {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
-<body class="bg-gray-50">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-sm sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 gradient-bg rounded-lg flex items-center justify-center">
-                        <i class="fas fa-tooth text-white text-xl"></i>
+<body>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+        <header class="mb-6 sm:mb-8">
+            <div class="flex items-center justify-between bg-white/80 backdrop-blur rounded-2xl px-4 sm:px-6 py-4 border border-slate-200">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl brand-chip flex items-center justify-center shadow-md">
+                        <i class="fas fa-tooth text-white text-lg"></i>
                     </div>
                     <div>
-                        <h1 class="text-xl font-bold text-gray-900">OralCare AI</h1>
-                        <p class="text-xs text-gray-500">Cancer Detection System</p>
+                        <p class="text-sm font-semibold text-slate-600">AI Histopathology</p>
+                        <h1 class="text-lg sm:text-xl font-bold">OralCare Detection</h1>
                     </div>
                 </div>
-                <div class="flex items-center space-x-6">
-                    <a href="#how-it-works" class="text-gray-600 hover:text-gray-900 text-sm font-medium">How it works</a>
-                    <a href="#about" class="text-gray-600 hover:text-gray-900 text-sm font-medium">About</a>
-                    <button class="gradient-bg text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
-                        Contact Doctor
-                    </button>
+                <div class="flex items-center gap-4">
+                    <a href="/static/how-it-works.html" class="text-sm font-semibold text-slate-600 hover:text-slate-900">How it works</a>
+                    <a href="/static/contact-doctor.html" class="text-sm font-semibold text-white bg-teal-700 hover:bg-teal-800 rounded-lg px-3 py-2">Contact Doctor</a>
                 </div>
             </div>
-        </div>
-    </nav>
+        </header>
 
-    <!-- Hero Section -->
-    <div class="gradient-bg text-white py-16">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center">
-                <h1 class="text-5xl font-bold mb-4">AI-Powered Oral Cancer Detection</h1>
-                <p class="text-xl text-purple-100 mb-8 max-w-2xl mx-auto">
-                    Early detection saves lives. Upload an oral image for instant AI analysis.
-                </p>
-                <div class="flex justify-center space-x-4">
-                    <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg px-6 py-3">
-                        <div class="text-3xl font-bold">95%</div>
-                        <div class="text-sm text-purple-100">Accuracy</div>
-                    </div>
-                    <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg px-6 py-3">
-                        <div class="text-3xl font-bold">&lt;2s</div>
-                        <div class="text-sm text-purple-100">Analysis Time</div>
-                    </div>
-                    <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg px-6 py-3">
-                        <div class="text-3xl font-bold">24/7</div>
-                        <div class="text-sm text-purple-100">Available</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Upload Section -->
-            <div class="bg-white rounded-2xl shadow-lg p-8 card-hover">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-bold text-gray-900">Upload Image</h2>
-                    <span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
-                        Step 1
+        <main class="main-shell bg-white rounded-3xl overflow-hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2">
+                <section class="p-6 sm:p-10 lg:p-12 bg-gradient-to-b from-white to-teal-50/40">
+                    <span class="inline-flex items-center gap-2 text-xs font-bold tracking-wide uppercase text-teal-800 bg-teal-100 rounded-full px-3 py-1 mb-4">
+                        <i class="fas fa-sparkles"></i>
+                        Upload First Experience
                     </span>
-                </div>
-                
-                <div id="uploadArea" class="upload-area rounded-xl p-12 text-center cursor-pointer">
-                    <i class="fas fa-cloud-upload-alt text-6xl text-gray-300 mb-4"></i>
-                    <p class="text-gray-600 mb-2 font-medium">Click to upload or drag and drop</p>
-                    <p class="text-sm text-gray-400">PNG, JPG up to 10MB</p>
-                    <input type="file" id="fileInput" accept="image/*" class="hidden">
-                </div>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold leading-tight mb-4">
+                        Drop an image and get AI screening in seconds
+                    </h2>
+                    <p class="text-slate-600 text-base sm:text-lg mb-6">
+                        Start with your histopathology image right away. This page is focused on one action: upload, analyze, and review a clear result.
+                    </p>
 
-                <div id="previewSection" class="mt-6 hidden">
-                    <div class="flex items-center justify-between mb-3">
-                        <p class="text-sm font-medium text-gray-700">Selected Image</p>
-                        <button id="removeImage" class="text-red-500 hover:text-red-700 text-sm font-medium">
-                            <i class="fas fa-times mr-1"></i> Remove
+                    <div class="grid grid-cols-3 gap-3 sm:gap-4 mb-7">
+                        <div class="soft-panel rounded-xl p-4 text-center">
+                            <p class="text-xl sm:text-2xl font-extrabold text-teal-700">&lt; 2s</p>
+                            <p class="text-xs text-slate-600 mt-1">Avg scan time</p>
+                        </div>
+                        <div class="soft-panel rounded-xl p-4 text-center">
+                            <p class="text-xl sm:text-2xl font-extrabold text-teal-700">24/7</p>
+                            <p class="text-xs text-slate-600 mt-1">Available</p>
+                        </div>
+                        <div class="soft-panel rounded-xl p-4 text-center">
+                            <p class="text-xl sm:text-2xl font-extrabold text-teal-700">AI</p>
+                            <p class="text-xs text-slate-600 mt-1">Assisted review</p>
+                        </div>
+                    </div>
+
+                    <div class="soft-panel rounded-2xl p-5">
+                        <h3 class="font-bold text-slate-900 mb-3">How it works</h3>
+                        <div class="space-y-3 text-sm text-slate-700">
+                            <p><span class="font-bold text-teal-700">1.</span> Upload or drag a clear oral tissue image.</p>
+                            <p><span class="font-bold text-teal-700">2.</span> AI classifies the sample and confidence level.</p>
+                            <p><span class="font-bold text-teal-700">3.</span> Review recommendations and consult a medical professional.</p>
+                        </div>
+                        <div class="mt-4 flex gap-3">
+                            <a href="/static/how-it-works.html" class="text-sm font-semibold text-teal-800 bg-teal-100 hover:bg-teal-200 rounded-lg px-3 py-2">Read Full Guide</a>
+                            <a href="/static/contact-doctor.html" class="text-sm font-semibold text-orange-800 bg-orange-100 hover:bg-orange-200 rounded-lg px-3 py-2">Find Nearby Doctors</a>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="p-6 sm:p-10 lg:p-12 bg-slate-50/70 border-t lg:border-t-0 lg:border-l border-slate-200">
+                    <div class="flex items-center justify-between mb-5">
+                        <h3 class="text-2xl sm:text-3xl font-extrabold">Upload Image</h3>
+                        <span class="text-xs sm:text-sm font-bold text-white bg-orange-500 rounded-full px-3 py-1">Step 1</span>
+                    </div>
+
+                    <div id="uploadArea" class="upload-surface rounded-2xl p-8 sm:p-10 text-center cursor-pointer">
+                        <div class="w-16 h-16 mx-auto rounded-2xl bg-white flex items-center justify-center shadow-sm mb-4">
+                            <i class="fas fa-cloud-arrow-up text-3xl text-teal-700"></i>
+                        </div>
+                        <p class="font-semibold text-slate-800 mb-1">Click to upload or drag and drop</p>
+                        <p class="text-sm text-slate-500">PNG / JPG up to 10MB</p>
+                        <input type="file" id="fileInput" accept="image/*" class="hidden" aria-label="Upload oral histopathology image" title="Upload oral histopathology image">
+                    </div>
+
+                    <div id="previewSection" class="mt-5 hidden rise-in">
+                        <div class="flex items-center justify-between mb-3">
+                            <p class="text-sm font-semibold text-slate-700">Selected image</p>
+                            <button id="removeImage" class="text-sm font-semibold text-red-600 hover:text-red-700">
+                                <i class="fas fa-xmark mr-1"></i> Remove
+                            </button>
+                        </div>
+                        <div class="rounded-xl overflow-hidden border border-slate-200 bg-white">
+                            <img id="imagePreview" src="" alt="Selected image preview" class="w-full h-auto">
+                        </div>
+                        <button id="analyzeBtn" class="primary-btn w-full text-white font-bold py-4 rounded-xl mt-5">
+                            <i class="fas fa-microscope mr-2"></i> Analyze Image
                         </button>
                     </div>
-                    <div class="relative rounded-lg overflow-hidden bg-gray-100">
-                        <img id="imagePreview" src="" alt="Preview" class="w-full h-auto">
-                    </div>
-                    <button id="analyzeBtn" class="w-full gradient-bg text-white font-medium py-4 rounded-xl mt-6 hover:opacity-90 transition-all transform hover:scale-[1.02]">
-                        <i class="fas fa-microscope mr-2"></i> Analyze Image
-                    </button>
-                </div>
 
-                <div id="loadingSection" class="mt-6 hidden">
-                    <div class="bg-purple-50 rounded-xl p-8 text-center">
-                        <div class="loader mx-auto mb-4"></div>
-                        <p class="text-gray-700 font-medium">Analyzing image...</p>
-                        <p class="text-sm text-gray-500 mt-2">This may take a few seconds</p>
-                        <div class="w-full bg-gray-200 rounded-full h-2 mt-4">
-                            <div id="progressBar" class="progress-bar rounded-full" style="width: 0%"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mt-8 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-                    <div class="flex">
-                        <i class="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
-                        <div>
-                            <h3 class="text-sm font-medium text-blue-900">Important Notice</h3>
-                            <p class="text-sm text-blue-700 mt-1">
-                                This is an AI-assisted tool. Always consult a healthcare professional for medical diagnosis.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Results Section -->
-            <div id="resultsSection" class="bg-white rounded-2xl shadow-lg p-8 card-hover hidden">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-bold text-gray-900">Analysis Results</h2>
-                    <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
-                        Step 2
-                    </span>
-                </div>
-
-                <div id="resultContent" class="fade-in">
-                    <!-- Result will be inserted here -->
-                </div>
-
-                <button id="newAnalysis" class="w-full border-2 border-purple-600 text-purple-600 font-medium py-4 rounded-xl mt-6 hover:bg-purple-50 transition-all">
-                    <i class="fas fa-redo mr-2"></i> New Analysis
-                </button>
-            </div>
-
-            <!-- Placeholder when no results -->
-            <div id="placeholderSection" class="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl shadow-lg p-8">
-                <div class="text-center py-12">
-                    <div class="w-24 h-24 gradient-bg rounded-full flex items-center justify-center mx-auto mb-6 pulse-animation">
-                        <i class="fas fa-chart-line text-4xl text-white"></i>
-                    </div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-3">Upload an image to begin</h3>
-                    <p class="text-gray-600 mb-8">AI will analyze the image and provide detailed results</p>
-                    
-                    <div class="space-y-4 text-left max-w-sm mx-auto">
-                        <div class="flex items-start space-x-3">
-                            <i class="fas fa-check-circle text-green-500 mt-1"></i>
-                            <div>
-                                <h4 class="font-medium text-gray-900">Fast Analysis</h4>
-                                <p class="text-sm text-gray-600">Get results in under 2 seconds</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start space-x-3">
-                            <i class="fas fa-check-circle text-green-500 mt-1"></i>
-                            <div>
-                                <h4 class="font-medium text-gray-900">High Accuracy</h4>
-                                <p class="text-sm text-gray-600">Trained on thousands of images</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start space-x-3">
-                            <i class="fas fa-check-circle text-green-500 mt-1"></i>
-                            <div>
-                                <h4 class="font-medium text-gray-900">Detailed Report</h4>
-                                <p class="text-sm text-gray-600">Comprehensive analysis with recommendations</p>
+                    <div id="loadingSection" class="mt-5 hidden rise-in">
+                        <div class="soft-panel rounded-2xl p-7 text-center">
+                            <div class="loader mx-auto mb-3"></div>
+                            <p class="font-semibold text-slate-800">Analyzing your image...</p>
+                            <p class="text-sm text-slate-500 mt-1">Please wait a moment</p>
+                            <div class="w-full bg-slate-200 rounded-full h-1.5 mt-4 overflow-hidden">
+                                <div id="progressBar" class="progress-bar rounded-full"></div>
                             </div>
                         </div>
                     </div>
-                </div>
+
+                    <div id="resultsSection" class="mt-5 hidden rise-in">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-2xl font-extrabold">Analysis Result</h3>
+                            <span class="text-xs sm:text-sm font-bold text-white bg-teal-600 rounded-full px-3 py-1">Step 2</span>
+                        </div>
+                        <div id="resultContent"></div>
+                        <button id="newAnalysis" class="w-full mt-4 border-2 border-teal-700 text-teal-700 font-bold py-3.5 rounded-xl hover:bg-teal-50">
+                            <i class="fas fa-rotate-right mr-2"></i> New Analysis
+                        </button>
+                    </div>
+
+                    <div id="placeholderSection" class="mt-5 soft-panel rounded-2xl p-5">
+                        <div class="flex items-start gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-orange-100 flex items-center justify-center text-orange-700 mt-0.5">
+                                <i class="fas fa-shield-heart"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold text-slate-800">Medical Notice</p>
+                                <p class="text-sm text-slate-600 mt-1">
+                                    This AI tool supports screening only. Final diagnosis must be made by a qualified healthcare professional.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
-        </div>
+        </main>
     </div>
-
-    <!-- Footer -->
-    <footer class="bg-gray-900 text-white py-12 mt-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div>
-                    <h3 class="text-lg font-bold mb-4">OralCare AI</h3>
-                    <p class="text-gray-400 text-sm">
-                        Advanced AI technology for early oral cancer detection. Empowering healthcare professionals and patients.
-                    </p>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold mb-4">Quick Links</h3>
-                    <ul class="space-y-2 text-sm text-gray-400">
-                        <li><a href="#" class="hover:text-white">About Us</a></li>
-                        <li><a href="#" class="hover:text-white">How It Works</a></li>
-                        <li><a href="#" class="hover:text-white">Privacy Policy</a></li>
-                        <li><a href="#" class="hover:text-white">Terms of Service</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold mb-4">Disclaimer</h3>
-                    <p class="text-gray-400 text-sm">
-                        This tool is for informational purposes only. Not a substitute for professional medical advice, diagnosis, or treatment.
-                    </p>
-                </div>
-            </div>
-            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
-                © 2026 OralCare AI. All rights reserved.
-            </div>
-        </div>
-    </footer>
 
     <script>
         const uploadArea = document.getElementById('uploadArea');
@@ -299,10 +263,8 @@
 
         let selectedFile = null;
 
-        // Upload area click
         uploadArea.addEventListener('click', () => fileInput.click());
 
-        // Drag and drop
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.classList.add('dragover');
@@ -321,7 +283,6 @@
             }
         });
 
-        // File input change
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
                 handleFileSelect(e.target.files[0]);
@@ -330,7 +291,7 @@
 
         function handleFileSelect(file) {
             if (!file.type.startsWith('image/')) {
-                alert('Please select an image file');
+                alert('Please select an image file.');
                 return;
             }
 
@@ -338,23 +299,17 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 imagePreview.src = e.target.result;
-                previewSection.classList.remove('hidden');
                 uploadArea.classList.add('hidden');
+                previewSection.classList.remove('hidden');
+                resultsSection.classList.add('hidden');
             };
             reader.readAsDataURL(file);
         }
 
-        // Remove image
         removeImage.addEventListener('click', () => {
-            selectedFile = null;
-            fileInput.value = '';
-            previewSection.classList.add('hidden');
-            uploadArea.classList.remove('hidden');
-            resultsSection.classList.add('hidden');
-            placeholderSection.classList.remove('hidden');
+            resetUploadState();
         });
 
-        // Analyze button
         analyzeBtn.addEventListener('click', async () => {
             if (!selectedFile) return;
 
@@ -362,13 +317,12 @@
             loadingSection.classList.remove('hidden');
             resultsSection.classList.add('hidden');
 
-            // Simulate progress
             let progress = 0;
             const interval = setInterval(() => {
-                progress += 10;
+                progress = Math.min(progress + 10, 90);
                 progressBar.style.width = progress + '%';
                 if (progress >= 90) clearInterval(interval);
-            }, 100);
+            }, 110);
 
             const formData = new FormData();
             formData.append('file', selectedFile);
@@ -383,119 +337,99 @@
                 if (!response.ok) {
                     throw new Error(data.detail || 'Prediction request failed');
                 }
-                
+
                 clearInterval(interval);
                 progressBar.style.width = '100%';
-                
+
                 setTimeout(() => {
-                    displayResults(data);
                     loadingSection.classList.add('hidden');
                     resultsSection.classList.remove('hidden');
                     placeholderSection.classList.add('hidden');
-                }, 500);
-
+                    displayResults(data);
+                }, 300);
             } catch (error) {
                 clearInterval(interval);
                 loadingSection.classList.add('hidden');
                 previewSection.classList.remove('hidden');
-                alert(`Error analyzing image: ${error.message}`);
-                console.error('Error:', error);
+                alert('Error analyzing image: ' + error.message);
+                console.error('Prediction error:', error);
             }
         });
 
         function displayResults(data) {
             const isCancerous = data.prediction === 'Cancerous';
-            const bgColor = isCancerous ? 'bg-red-50' : 'bg-green-50';
-            const borderColor = isCancerous ? 'border-red-200' : 'border-green-200';
-            const textColor = isCancerous ? 'text-red-900' : 'text-green-900';
-            const iconColor = isCancerous ? 'text-red-500' : 'text-green-500';
-            const icon = isCancerous ? 'fa-exclamation-triangle' : 'fa-check-circle';
+            const toneClass = isCancerous
+                ? 'bg-red-50 border-red-200 text-red-900'
+                : 'bg-emerald-50 border-emerald-200 text-emerald-900';
+            const iconClass = isCancerous
+                ? 'fa-exclamation-triangle text-red-600'
+                : 'fa-circle-check text-emerald-600';
 
             resultContent.innerHTML = `
-                <div class="${bgColor} ${borderColor} border-2 rounded-xl p-6 mb-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center space-x-3">
-                            <i class="fas ${icon} ${iconColor} text-3xl"></i>
+                <div class="${toneClass} border rounded-2xl p-5 mb-4">
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <i class="fas ${iconClass} text-2xl"></i>
                             <div>
-                                <h3 class="${textColor} text-2xl font-bold">${data.prediction}</h3>
-                                <p class="text-gray-600 text-sm">Detection Result</p>
+                                <p class="text-sm opacity-80">Prediction</p>
+                                <p class="text-2xl font-extrabold">${data.prediction}</p>
                             </div>
                         </div>
                         <div class="text-right">
-                            <div class="${textColor} text-3xl font-bold">${data.confidence}%</div>
-                            <div class="text-gray-600 text-sm">Confidence</div>
+                            <p class="text-sm opacity-80">Confidence</p>
+                            <p class="text-3xl font-extrabold">${data.confidence}%</p>
                         </div>
                     </div>
-                    
-                    <div class="grid grid-cols-2 gap-4 mt-4">
-                        <div class="bg-white rounded-lg p-4">
-                            <p class="text-gray-500 text-sm mb-1">Risk Level</p>
-                            <p class="${textColor} font-bold text-lg">${data.risk_level}</p>
+                    <div class="grid grid-cols-2 gap-3 mt-4">
+                        <div class="bg-white/70 rounded-xl p-3">
+                            <p class="text-xs uppercase opacity-70">Risk Level</p>
+                            <p class="text-base font-bold">${data.risk_level}</p>
                         </div>
-                        <div class="bg-white rounded-lg p-4">
-                            <p class="text-gray-500 text-sm mb-1">Status</p>
-                            <p class="${textColor} font-bold text-lg">${isCancerous ? 'Attention Required' : 'All Clear'}</p>
+                        <div class="bg-white/70 rounded-xl p-3">
+                            <p class="text-xs uppercase opacity-70">Status</p>
+                            <p class="text-base font-bold">${isCancerous ? 'Attention Required' : 'All Clear'}</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-gray-50 rounded-xl p-6">
-                    <h4 class="font-bold text-gray-900 mb-4 flex items-center">
-                        <i class="fas fa-clipboard-list mr-2 text-purple-600"></i>
-                        Recommendations
+                <div class="soft-panel rounded-2xl p-5">
+                    <h4 class="font-bold mb-3 text-slate-900 flex items-center">
+                        <i class="fas fa-clipboard-check text-teal-700 mr-2"></i> Recommendations
                     </h4>
-                    <ul class="space-y-3">
+                    <ul class="space-y-2">
                         ${data.recommendations.map(rec => `
-                            <li class="flex items-start space-x-3">
-                                <div class="bg-white rounded-full p-1 mt-0.5">
-                                    <i class="fas fa-circle text-purple-600 text-xs"></i>
-                                </div>
-                                <span class="text-gray-700 text-sm">${rec}</span>
+                            <li class="text-sm text-slate-700 flex items-start gap-2">
+                                <i class="fas fa-circle text-[8px] text-teal-700 mt-1.5"></i>
+                                <span>${rec}</span>
                             </li>
                         `).join('')}
                     </ul>
                 </div>
 
                 ${data.demo_mode ? `
-                <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded mt-6">
-                    <div class="flex">
-                        <i class="fas fa-flask text-amber-600 mt-1 mr-3"></i>
-                        <div>
-                            <h3 class="text-sm font-medium text-amber-900">Demo Mode Active</h3>
-                            <p class="text-sm text-amber-700 mt-1">
-                                This deployment is running a lightweight Vercel demo API. Predictions are simulated and not generated by your TensorFlow model.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                ` : ''}
-
-                ${isCancerous ? `
-                <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded mt-6">
-                    <div class="flex">
-                        <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-3"></i>
-                        <div>
-                            <h3 class="text-sm font-medium text-yellow-900">Urgent Action Required</h3>
-                            <p class="text-sm text-yellow-700 mt-1">
-                                This AI analysis suggests potential concerns. Please seek immediate medical attention.
-                            </p>
-                        </div>
-                    </div>
+                <div class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
+                    <p class="font-bold mb-1">Demo Mode Active</p>
+                    <p>This deployment is using a demo or proxy inference flow and may not run the full TensorFlow model directly.</p>
                 </div>
                 ` : ''}
             `;
         }
 
-        // New analysis
         newAnalysis.addEventListener('click', () => {
+            resetUploadState();
+            resultsSection.classList.add('hidden');
+            placeholderSection.classList.remove('hidden');
+        });
+
+        function resetUploadState() {
             selectedFile = null;
             fileInput.value = '';
-            previewSection.classList.add('hidden');
-            resultsSection.classList.add('hidden');
-            uploadArea.classList.remove('hidden');
-            placeholderSection.classList.remove('hidden');
+            imagePreview.src = '';
             progressBar.style.width = '0%';
-        });
+            previewSection.classList.add('hidden');
+            loadingSection.classList.add('hidden');
+            uploadArea.classList.remove('hidden');
+        }
     </script>
 </body>
 </html>
