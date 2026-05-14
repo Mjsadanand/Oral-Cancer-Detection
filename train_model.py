@@ -15,6 +15,8 @@ from pathlib import Path
 import os
 import datetime
 import json
+from sklearn.metrics import confusion_matrix, classification_report, roc_curve, auc
+import seaborn as sns
 
 try:
     import tensorboard  # noqa: F401
@@ -439,6 +441,9 @@ def train_model():
     # Plot training history
     plot_history(history)
     
+    # Generate and display confusion matrix
+    generate_confusion_matrix(model, val_generator)
+    
     # Save model
     model.save('models/oral_cancer_model_final.h5')
     print("\n💾 Model saved to 'models/oral_cancer_model.h5'")
@@ -492,6 +497,92 @@ def plot_history(history):
     plt.savefig('models/training_history.png', dpi=300, bbox_inches='tight')
     print("📈 Training plots saved to 'models/training_history.png'")
     plt.show()
+
+def generate_confusion_matrix(model, val_generator):
+    """
+    Generate and display confusion matrix from validation data
+    """
+    print("\n📊 Generating Confusion Matrix...")
+    
+    # Get predictions on validation data
+    y_true = []
+    y_pred = []
+    
+    # Reset generator to start from beginning
+    val_generator.reset()
+    
+    # Make predictions on all validation data
+    for images, labels in val_generator:
+        predictions = model.predict(images, verbose=0)
+        y_pred.extend((predictions > 0.5).astype(int).flatten())
+        y_true.extend(labels)
+    
+    # Get class labels from generator
+    class_labels = list(val_generator.class_indices.keys())
+    
+    # Calculate confusion matrix
+    cm = confusion_matrix(y_true, y_pred)
+    
+    # Create figure with better styling
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+    
+    # Plot 1: Confusion Matrix Heatmap
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+                xticklabels=class_labels, 
+                yticklabels=class_labels,
+                ax=axes[0],
+                cbar_kws={'label': 'Count'},
+                annot_kws={'size': 14})
+    axes[0].set_xlabel('Predicted Label', fontsize=12, fontweight='bold')
+    axes[0].set_ylabel('True Label', fontsize=12, fontweight='bold')
+    axes[0].set_title('Confusion Matrix - Validation Data', fontsize=14, fontweight='bold')
+    
+    # Plot 2: Normalized Confusion Matrix (percentage)
+    cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    sns.heatmap(cm_normalized, annot=True, fmt='.2%', cmap='RdYlGn', 
+                xticklabels=class_labels, 
+                yticklabels=class_labels,
+                ax=axes[1],
+                cbar_kws={'label': 'Percentage'},
+                annot_kws={'size': 12})
+    axes[1].set_xlabel('Predicted Label', fontsize=12, fontweight='bold')
+    axes[1].set_ylabel('True Label', fontsize=12, fontweight='bold')
+    axes[1].set_title('Confusion Matrix - Normalized (%)', fontsize=14, fontweight='bold')
+    
+    plt.tight_layout()
+    plt.savefig('models/confusion_matrix.png', dpi=300, bbox_inches='tight')
+    print("✅ Confusion matrix saved to 'models/confusion_matrix.png'")
+    plt.show()
+    
+    # Print detailed classification report
+    print("\n" + "=" * 60)
+    print("📋 Classification Report")
+    print("=" * 60)
+    print(classification_report(y_true, y_pred, target_names=class_labels))
+    
+    # Print confusion matrix details
+    print("\n" + "=" * 60)
+    print("📊 Confusion Matrix Details")
+    print("=" * 60)
+    print(f"{'Metric':<25} {'Normal':<15} {'Cancerous':<15}")
+    print("-" * 55)
+    
+    tn, fp, fn, tp = cm.ravel()
+    print(f"{'True Negatives (TN)':<25} {tn:<15} -")
+    print(f"{'False Positives (FP)':<25} {fp:<15} -")
+    print(f"{'False Negatives (FN)':<25} {fn:<15} -")
+    print(f"{'True Positives (TP)':<25} {tp:<15} -")
+    
+    # Calculate additional metrics
+    sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
+    specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
+    
+    print("\n" + "-" * 55)
+    print(f"{'Sensitivity (Recall)':<25} {sensitivity*100:.2f}%")
+    print(f"{'Specificity':<25} {specificity*100:.2f}%")
+    print("=" * 60)
+    
+    return cm, y_true, y_pred
 
 if __name__ == "__main__":
     dataset_root = resolve_dataset_path()

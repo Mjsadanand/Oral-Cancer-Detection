@@ -85,6 +85,37 @@
             background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             transition: width 0.3s ease;
         }
+
+        .tab-button {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab-button.active {
+            color: #667eea !important;
+            border-bottom-color: #667eea !important;
+        }
+
+        .tab-button:hover {
+            color: #667eea;
+        }
+
+        .tab-content {
+            opacity: 0;
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -140,7 +171,19 @@
 
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Tabs Navigation -->
+        <div class="flex space-x-4 mb-8 border-b border-gray-200">
+            <button id="predictionTab" class="tab-button active px-6 py-3 text-sm font-medium text-purple-600 border-b-2 border-purple-600">
+                <i class="fas fa-microscope mr-2"></i> Image Prediction
+            </button>
+            <button id="metricsTab" class="tab-button px-6 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 border-b-2 border-transparent">
+                <i class="fas fa-chart-bar mr-2"></i> Model Analytics
+            </button>
+        </div>
+
+        <!-- Prediction Tab -->
+        <div id="predictionTabContent" class="tab-content active">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- Upload Section -->
             <div class="bg-white rounded-2xl shadow-lg p-8 card-hover">
                 <div class="flex items-center justify-between mb-6">
@@ -249,9 +292,136 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Footer -->
+        <!-- Metrics Tab -->
+        <div id="metricsTabContent" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Confusion Matrix Section -->
+                <div class="bg-white rounded-2xl shadow-lg p-8 card-hover">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-bold text-gray-900">Confusion Matrix</h2>
+                        <button id="refreshMetrics" class="text-gray-400 hover:text-gray-600" title="Refresh metrics">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    
+                    <div id="confusionMatrixContainer" class="bg-gray-50 rounded-lg p-4 flex items-center justify-center min-h-96">
+                        <div class="text-center">
+                            <div class="inline-block animate-spin">
+                                <i class="fas fa-spinner text-purple-600 text-3xl"></i>
+                            </div>
+                            <p class="text-gray-600 mt-3">Loading confusion matrix...</p>
+                        </div>
+                    </div>
+                    
+                    <p class="text-xs text-gray-500 mt-4 text-center">
+                        <i class="fas fa-info-circle mr-1"></i> Generate by running: python generate_confusion_matrix.py
+                    </p>
+                </div>
+
+                <!-- Metrics Cards Section -->
+                <div class="space-y-6">
+                    <!-- Performance Metrics -->
+                    <div class="bg-white rounded-2xl shadow-lg p-8 card-hover">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">
+                            <i class="fas fa-tachometer-alt text-purple-600 mr-2"></i> Performance Metrics
+                        </h3>
+                        
+                        <div id="metricsContent" class="space-y-4">
+                            <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-700 font-medium">Accuracy</span>
+                                    <div>
+                                        <span id="accuracy" class="text-2xl font-bold text-green-600">--</span>
+                                        <span class="text-gray-500 text-sm">%</span>
+                                    </div>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                    <div id="accuracyBar" class="bg-green-500 h-2 rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-700 font-medium">Sensitivity (Recall)</span>
+                                    <div>
+                                        <span id="sensitivity" class="text-2xl font-bold text-blue-600">--</span>
+                                        <span class="text-gray-500 text-sm">%</span>
+                                    </div>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                    <div id="sensitivityBar" class="bg-blue-500 h-2 rounded-full" style="width: 0%"></div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-2">Ability to detect cancer cases</p>
+                            </div>
+
+                            <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-700 font-medium">Specificity</span>
+                                    <div>
+                                        <span id="specificity" class="text-2xl font-bold text-indigo-600">--</span>
+                                        <span class="text-gray-500 text-sm">%</span>
+                                    </div>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                    <div id="specificityBar" class="bg-indigo-500 h-2 rounded-full" style="width: 0%"></div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-2">Ability to identify normal cases</p>
+                            </div>
+
+                            <div class="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg p-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-700 font-medium">F1 Score</span>
+                                    <span id="f1Score" class="text-2xl font-bold text-orange-600">--</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                    <div id="f1ScoreBar" class="bg-orange-500 h-2 rounded-full" style="width: 0%"></div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-2">Harmonic mean of precision & recall</p>
+                            </div>
+
+                            <div class="bg-gradient-to-r from-pink-50 to-rose-50 rounded-lg p-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-700 font-medium">ROC AUC</span>
+                                    <span id="rocAuc" class="text-2xl font-bold text-pink-600">--</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                    <div id="rocAucBar" class="bg-pink-500 h-2 rounded-full" style="width: 0%"></div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-2">Area under ROC curve</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Confusion Matrix Summary -->
+                    <div class="bg-white rounded-2xl shadow-lg p-8 card-hover">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">
+                            <i class="fas fa-table text-purple-600 mr-2"></i> Matrix Summary
+                        </h3>
+                        
+                        <div id="matrixSummary" class="space-y-3">
+                            <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                                <span class="text-gray-700">True Positives (TP)</span>
+                                <span id="tp" class="font-bold text-lg text-green-600">--</span>
+                            </div>
+                            <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                                <span class="text-gray-700">True Negatives (TN)</span>
+                                <span id="tn" class="font-bold text-lg text-blue-600">--</span>
+                            </div>
+                            <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                                <span class="text-gray-700">False Positives (FP)</span>
+                                <span id="fp" class="font-bold text-lg text-red-600">--</span>
+                            </div>
+                            <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                                <span class="text-gray-700">False Negatives (FN)</span>
+                                <span id="fn" class="font-bold text-lg text-orange-600">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <footer class="bg-gray-900 text-white py-12 mt-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -296,8 +466,147 @@
         const removeImage = document.getElementById('removeImage');
         const newAnalysis = document.getElementById('newAnalysis');
         const progressBar = document.getElementById('progressBar');
+        
+        // Tab elements
+        const predictionTab = document.getElementById('predictionTab');
+        const metricsTab = document.getElementById('metricsTab');
+        const predictionTabContent = document.getElementById('predictionTabContent');
+        const metricsTabContent = document.getElementById('metricsTabContent');
+        const refreshMetrics = document.getElementById('refreshMetrics');
 
         let selectedFile = null;
+
+        // Tab switching functionality
+        predictionTab.addEventListener('click', () => {
+            predictionTab.classList.add('active', 'text-purple-600', 'border-purple-600');
+            predictionTab.classList.remove('text-gray-600', 'border-transparent');
+            metricsTab.classList.remove('active', 'text-purple-600', 'border-purple-600');
+            metricsTab.classList.add('text-gray-600', 'border-transparent');
+            
+            predictionTabContent.classList.remove('hidden');
+            predictionTabContent.classList.add('active');
+            metricsTabContent.classList.add('hidden');
+            metricsTabContent.classList.remove('active');
+        });
+
+        metricsTab.addEventListener('click', () => {
+            metricsTab.classList.add('active', 'text-purple-600', 'border-purple-600');
+            metricsTab.classList.remove('text-gray-600', 'border-transparent');
+            predictionTab.classList.remove('active', 'text-purple-600', 'border-purple-600');
+            predictionTab.classList.add('text-gray-600', 'border-transparent');
+            
+            metricsTabContent.classList.remove('hidden');
+            metricsTabContent.classList.add('active');
+            predictionTabContent.classList.add('hidden');
+            predictionTabContent.classList.remove('active');
+            
+            loadMetricsData();
+        });
+
+        // Load metrics when page loads
+        window.addEventListener('load', () => {
+            loadMetricsData();
+        });
+
+        // Refresh metrics button
+        if (refreshMetrics) {
+            refreshMetrics.addEventListener('click', () => {
+                refreshMetrics.style.animation = 'spin 1s linear';
+                loadMetricsData();
+                setTimeout(() => {
+                    refreshMetrics.style.animation = '';
+                }, 1000);
+            });
+        }
+
+        async function loadMetricsData() {
+            try {
+                // Fetch metrics
+                const metricsResponse = await fetch('/api/metrics');
+                const metrics = await metricsResponse.json();
+                
+                // Update metrics display
+                if (metrics.performance) {
+                    const perf = metrics.performance;
+                    
+                    // Update accuracy
+                    const accuracy = Math.round(perf.accuracy * 100);
+                    document.getElementById('accuracy').textContent = accuracy;
+                    document.getElementById('accuracyBar').style.width = accuracy + '%';
+                    
+                    // Update sensitivity
+                    const sensitivity = Math.round(perf.sensitivity * 100);
+                    document.getElementById('sensitivity').textContent = sensitivity;
+                    document.getElementById('sensitivityBar').style.width = sensitivity + '%';
+                    
+                    // Update specificity
+                    const specificity = Math.round(perf.specificity * 100);
+                    document.getElementById('specificity').textContent = specificity;
+                    document.getElementById('specificityBar').style.width = specificity + '%';
+                    
+                    // Update F1 Score
+                    const f1 = (perf.f1_score * 100).toFixed(1);
+                    document.getElementById('f1Score').textContent = f1;
+                    document.getElementById('f1ScoreBar').style.width = Math.min(f1 * 10, 100) + '%';
+                    
+                    // Update ROC AUC
+                    const auc = (perf.roc_auc * 100).toFixed(1);
+                    document.getElementById('rocAuc').textContent = auc;
+                    document.getElementById('rocAucBar').style.width = auc + '%';
+                }
+                
+                // Update confusion matrix summary
+                if (metrics.confusion_matrix) {
+                    const cm = metrics.confusion_matrix;
+                    document.getElementById('tp').textContent = cm.true_positives;
+                    document.getElementById('tn').textContent = cm.true_negatives;
+                    document.getElementById('fp').textContent = cm.false_positives;
+                    document.getElementById('fn').textContent = cm.false_negatives;
+                }
+                
+                // Load confusion matrix image
+                loadConfusionMatrix();
+                
+            } catch (error) {
+                console.error('Error loading metrics:', error);
+            }
+        }
+
+        async function loadConfusionMatrix() {
+            try {
+                const response = await fetch('/api/confusion-matrix/base64');
+                const data = await response.json();
+                
+                const container = document.getElementById('confusionMatrixContainer');
+                
+                if (data.status === 'success' && data.image) {
+                    container.innerHTML = `
+                        <div class="w-full">
+                            <img src="${data.image}" alt="Confusion Matrix" class="w-full h-auto rounded-lg shadow-md">
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="text-center py-12">
+                            <div class="text-6xl mb-4">📊</div>
+                            <p class="text-gray-600 font-medium">Confusion matrix not generated</p>
+                            <p class="text-sm text-gray-500 mt-2">Run this command to generate it:</p>
+                            <div class="bg-gray-900 text-white p-3 rounded-lg mt-3 text-sm font-mono overflow-x-auto">
+                                python generate_confusion_matrix.py
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading confusion matrix:', error);
+                const container = document.getElementById('confusionMatrixContainer');
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <p class="text-red-600 font-medium">Error loading confusion matrix</p>
+                    </div>
+                `;
+            }
+        }
 
         // Upload area click
         uploadArea.addEventListener('click', () => fileInput.click());

@@ -1,9 +1,12 @@
 from io import BytesIO
 from random import choices, uniform
+import json
+from pathlib import Path
+import base64
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from PIL import Image
 
 app = FastAPI(title="Oral Cancer Detection API (Vercel)")
@@ -96,3 +99,104 @@ def get_recommendations(predicted_class: int, confidence: float) -> list[str]:
         "Consult a professional for any persistent symptoms.",
         "This Vercel endpoint is running in demo mode.",
     ]
+
+
+@app.get("/api/confusion-matrix")
+async def get_confusion_matrix():
+    """Return confusion matrix visualization image"""
+    try:
+        cm_path = Path(__file__).parent.parent / "models" / "confusion_matrix.png"
+        
+        if not cm_path.exists():
+            # Return demo confusion matrix data if image doesn't exist
+            return JSONResponse(content={
+                "status": "demo",
+                "message": "Confusion matrix not generated yet. Run generate_confusion_matrix.py to generate it.",
+                "demo_mode": True,
+                "metrics": {
+                    "sensitivity": 0.92,
+                    "specificity": 0.88,
+                    "accuracy": 0.90,
+                    "f1_score": 0.89,
+                    "roc_auc": 0.95,
+                    "tn": 44,
+                    "fp": 6,
+                    "fn": 4,
+                    "tp": 46
+                }
+            })
+        
+        return FileResponse(cm_path, media_type="image/png")
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve confusion matrix: {e}")
+
+
+@app.get("/api/metrics")
+async def get_model_metrics():
+    """Return detailed model metrics"""
+    try:
+        # Try to load metrics from a metrics file if it exists
+        metrics_path = Path(__file__).parent.parent / "models" / "metrics.json"
+        
+        if metrics_path.exists():
+            with open(metrics_path, 'r') as f:
+                metrics = json.load(f)
+                return JSONResponse(content=metrics)
+        
+        # Return demo metrics if file doesn't exist
+        demo_metrics = {
+            "status": "demo",
+            "mode": "vercel-demo",
+            "model_type": "DenseNet121",
+            "dataset": "Histopathology Images",
+            "performance": {
+                "sensitivity": 0.92,  # TP / (TP + FN)
+                "specificity": 0.88,  # TN / (TN + FP)
+                "accuracy": 0.90,     # (TP + TN) / Total
+                "precision": 0.88,    # TP / (TP + FP)
+                "recall": 0.92,       # Same as sensitivity
+                "f1_score": 0.89,
+                "roc_auc": 0.95
+            },
+            "confusion_matrix": {
+                "true_negatives": 44,
+                "false_positives": 6,
+                "false_negatives": 4,
+                "true_positives": 46,
+                "total_samples": 100
+            },
+            "class_names": ["Normal", "Cancerous"],
+            "demo_mode": True,
+            "note": "These are demo metrics. Run generate_confusion_matrix.py to generate real metrics."
+        }
+        return JSONResponse(content=demo_metrics)
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve metrics: {e}")
+
+
+@app.get("/api/confusion-matrix/base64")
+async def get_confusion_matrix_base64():
+    """Return confusion matrix as base64-encoded image"""
+    try:
+        cm_path = Path(__file__).parent.parent / "models" / "confusion_matrix.png"
+        
+        if not cm_path.exists():
+            return JSONResponse(content={
+                "status": "not_found",
+                "message": "Confusion matrix not generated yet",
+                "demo_mode": True
+            })
+        
+        with open(cm_path, 'rb') as f:
+            image_data = base64.b64encode(f.read()).decode()
+        
+        return JSONResponse(content={
+            "status": "success",
+            "image": f"data:image/png;base64,{image_data}",
+            "format": "base64"
+        })
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to encode image: {e}")
