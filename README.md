@@ -29,7 +29,7 @@ An AI-powered web application for oral cancer detection using deep learning and 
 
 1. **Clone or navigate to project directory**
 ```bash
-cd "V:\A\Soumya"
+cd "(your directory)"
 ```
 
 2. **Install dependencies**
@@ -297,7 +297,7 @@ print(f"Test Accuracy: {results[1] * 100:.2f}%")
 ## 📝 Project Structure
 
 ```
-V:\A\Soumya/
+V:\A\
 ├── app.py                    # FastAPI backend
 ├── train_model.py            # Model training script
 ├── requirements.txt          # Python dependencies
